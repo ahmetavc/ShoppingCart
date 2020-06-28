@@ -13,8 +13,8 @@ class ShoppingCart:
         categories = {
             'categoryTitle': {
                'obj': category,
-               'productCount': 3,
-               'currentPrice': 15.0,
+               'productCount': 4,
+               'currentPrice': 35.0,
                'products': {
                    'product1title': {
                        'obj': product1,
@@ -39,8 +39,10 @@ class ShoppingCart:
         self.campaignDiscount: float = 0
         self.numberOfUniqueProducts: int = 0
         self.isAnyDiscountApplied: bool = False
+        self.deliveryCost: float = None # will be calculated when deliveryCostCalculator calculates the cost
 
     def addItem(self, product: Product, count: int) -> bool:
+        # if any discount is applied, items cannot be changes. This will be changed in the future releases
         if self.isAnyDiscountApplied:
             False
 
@@ -161,6 +163,8 @@ class ShoppingCart:
         if self.currentTotalAmount < coupon.minPurchaseLimit:
             return False
 
+        self.isAnyDiscountApplied = True
+
         if coupon.discountType == DiscountType.Amount:
             discount = coupon.discount if coupon.discount <= self.currentTotalAmount else self.currentTotalAmount
         else:                        
@@ -185,7 +189,7 @@ class ShoppingCart:
         return True
         
     def getTotalAmountAfterDiscounts(self) -> float:
-        pass
+        return self.currentTotalAmount
 
     def getCouponDiscounts(self) -> float:
         return self.couponDiscount
@@ -193,7 +197,27 @@ class ShoppingCart:
     def getCampaignDiscounts(self) -> float:
         return self.campaignDiscount
 
+    def getDeliveryCost(self) -> float:
+        return self.deliveryCost
+
     def print(self) -> None:
-        pass
+        
+        for category in self.categories:
+            for product in self.categories[category]['products']:
+                count = self.categories[category]['products'][product]['count']
+                unitPrice = self.categories[category]['products'][product]['obj'].price
+                totalPrice = self.categories[category]['products'][product]['currentPrice']
+                totalDiscount = unitPrice * count - totalPrice
+
+                print("CategoryName: {}, ProductName: {}, Quantity: {}, UnitPrice: {}, TotalPrice: {}, TotalDiscount: {}".format(
+                    category, 
+                    product, 
+                    count,
+                    unitPrice,
+                    totalPrice,
+                    totalDiscount
+                ))
+
+        print("TotalCost: {}, DeliveryCost: {}".format(self.currentTotalAmount, self.deliveryCost))
 
     

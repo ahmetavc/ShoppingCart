@@ -4,6 +4,7 @@ from Coupon import Coupon
 from ShoppingCart import ShoppingCart
 from Product import Product
 from DiscountType import DiscountType
+from DeliveryCostCalculator import DeliveryCostCalculator
 import unittest
 
 class TestShoppingCart(unittest.TestCase):
@@ -257,6 +258,33 @@ class TestShoppingCart(unittest.TestCase):
 
         self.assertEqual(self.cart.couponDiscount, 0.0)
         self.assertEqual(self.cart.currentTotalAmount, totalPriceBeforeDiscounts)
+
+
+class TestDeliveryCostCalculator(unittest.TestCase):
+
+    def setUp(self):
+        self.food = Category('food')
+        self.home = Category('home')
+        self.apple = Product('apple', 100.0, self.food)
+        self.almond = Product('almond', 50.0, self.food)
+        self.chair = Product('chair', 100.0, self.home)
+
+        self.cart = ShoppingCart()
+        self.cart.addItem(self.apple, 3)
+        self.cart.addItem(self.almond, 1)
+        self.cart.addItem(self.chair, 2)
+
+        self.costPerDelivery = 10.0 
+        self.costPerProduct = 10.0 
+        self.fixedPrice = 80.0
+        self.deliveryCostCalculator = DeliveryCostCalculator(self.costPerDelivery, self.costPerProduct, self.fixedPrice)
+    
+    def test_should_calculate_delivery_cost(self):
+        expectedDeliveryCost = (self.costPerDelivery * 2) + (self.costPerProduct * 3) + self.fixedPrice 
+        actualResult = self.deliveryCostCalculator.calculateFor(self.cart)
+        
+        self.assertEqual(actualResult, expectedDeliveryCost)
+        self.assertEqual(self.cart.deliveryCost, actualResult)
 
 if __name__ == '__main__':
     unittest.main()
