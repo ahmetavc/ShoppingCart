@@ -45,6 +45,7 @@ class ShoppingCart:
 
         category = product.category
         currentProductPrice = product.price * count
+        self.currentTotalAmount += currentProductPrice
 
         if category.title in self.categories:
             self.categories[category.title]['productCount'] += count
@@ -76,7 +77,7 @@ class ShoppingCart:
             }
 
         return True, 'Items are succesfully added to your shopping cart!'
-
+        
     def getTotalAmountAfterDiscounts(self) -> float:
         pass
 
