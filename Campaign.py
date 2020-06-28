@@ -3,8 +3,8 @@ import DiscountType
 
 class Campaign:
 
-    def __init__(self, category: Category, discount: float, minItemLimit: int, discountType: DiscountType) -> None:
+    def __init__(self, category: Category, discount: float, minProductLimit: int, discountType: DiscountType) -> None:
         self.category = category
         self.discount = discount
-        self.minItemLimit = minItemLimit
+        self.minProductLimit = minProductLimit
         self.discountType = discountType

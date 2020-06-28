@@ -1,8 +1,8 @@
-import Category
-import Product
-import Campaign
-import DiscountType
-import Coupon
+from Category import Category
+from Campaign import Campaign
+from Product import Product
+from DiscountType import DiscountType
+from Coupon import Coupon
 
 class ShoppingCart:
 
@@ -77,6 +77,60 @@ class ShoppingCart:
             }
 
         return True, 'Items are succesfully added to your shopping cart!'
+
+    def applyDiscounts(self, *campaigns: Campaign) -> None:
+        rateDiscountCampaigns = []
+        amountDiscountsCampaigns = []
+
+        # in order to apply maximum discount,
+        # rate discounts should be applied before amount discounts.
+        for campaign in campaigns:
+            if campaign.discountType == DiscountType.Amount:
+                amountDiscountsCampaigns.append(campaign)
+            else:
+                rateDiscountCampaigns.append(campaign)
+
+        self.applyRateDiscountCampaigns(rateDiscountCampaigns)
+        # self.applyAmountDiscountCampaigns(amountDiscountsCampaigns)
+        
+
+    def applyRateDiscountCampaigns(self, rateDiscounts) -> None:
+        for campaign in rateDiscounts:
+            applicableCategories, applicableProductCount = self.getCampaignApplicableCategories(campaign)
+
+            # if there is not enough products in all the categories affected by this campaign, continue
+            if applicableProductCount <= campaign.minProductLimit:
+                continue
+
+            for applicableCategory in applicableCategories:
+                curCategoryDiscountAmount = 0
+                for curProduct in self.categories[applicableCategory.title]['products']:
+                    curProductDiscountAmount = self.categories[applicableCategory.title]['products'][curProduct]['currentPrice'] * (campaign.discount / 100.0)
+                    curCategoryDiscountAmount += curProductDiscountAmount
+                    self.categories[applicableCategory.title]['products'][curProduct]['currentPrice'] -= curProductDiscountAmount
+
+                self.categories[applicableCategory.title]['currentPrice'] -= curCategoryDiscountAmount
+                self.campaignDiscount += curCategoryDiscountAmount
+            
+    def getCampaignApplicableCategories(self, campaign: Campaign):
+        category = campaign.category
+        applicableCategories = []
+        applicableProductCount = 0
+
+        for curCategoryTitle in self.categories:
+            curCategory = self.categories[curCategoryTitle]['obj']
+            parentCategory = curCategory
+
+            # campaign category also affects its child categories
+            while parentCategory != None:
+                if parentCategory.title == category.title:
+                    applicableCategories.append(curCategory)
+                    applicableProductCount += self.categories[curCategoryTitle]['productCount']
+                    break
+
+                parentCategory = parentCategory.parent
+
+        return applicableCategories, applicableProductCount
         
     def getTotalAmountAfterDiscounts(self) -> float:
         pass
