@@ -42,7 +42,7 @@ class ShoppingCart:
         self.deliveryCost: float = None # will be calculated when deliveryCostCalculator calculates the cost
 
     def addItem(self, product: Product, count: int) -> bool:
-        # if any discount is applied, items cannot be changes. This will be changed in the future releases
+        # if any discount is applied, items cannot be changed. This will be changed in the future releases.
         if self.isAnyDiscountApplied:
             False
 
@@ -197,6 +197,7 @@ class ShoppingCart:
     def getCampaignDiscounts(self) -> float:
         return self.campaignDiscount
 
+    # This will be set when calculator is called
     def getDeliveryCost(self) -> float:
         return self.deliveryCost
 
