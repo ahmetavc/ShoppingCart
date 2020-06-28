@@ -3,6 +3,7 @@ from Campaign import Campaign
 from Product import Product
 from DiscountType import DiscountType
 from Coupon import Coupon
+from typing import List, Tuple
 
 class ShoppingCart:
 
@@ -10,18 +11,18 @@ class ShoppingCart:
         """
         example categories structure;
         categories = {
-            'cat1': {
-               'obj': cat1,
+            'categoryTitle': {
+               'obj': category,
                'productCount': 3,
                'currentPrice': 15.0,
                'products': {
-                   'prod11': {
-                       'obj': prod11,
+                   'product1title': {
+                       'obj': product1,
                        'count': 3,
                        'currentPrice': 10.0,
                    },
-                   'prod12': {
-                       'obj': prod12,
+                   'product2title': {
+                       'obj': product2,
                        'count': 1,
                        'currentPrice': 5.0,
                    }
@@ -41,7 +42,7 @@ class ShoppingCart:
 
     def addItem(self, product: Product, count: int) -> bool:
         if self.isAnyDiscountApplied:
-            False, 'You cannot add new items after discounts are applied!'
+            False
 
         category = product.category
         currentProductPrice = product.price * count
@@ -79,6 +80,7 @@ class ShoppingCart:
         return True, 'Items are succesfully added to your shopping cart!'
 
     def applyDiscounts(self, *campaigns: Campaign) -> None:
+        self.isAnyDiscountApplied = True
         rateDiscountCampaigns = []
         amountDiscountsCampaigns = []
 
@@ -91,12 +93,12 @@ class ShoppingCart:
                 rateDiscountCampaigns.append(campaign)
 
         self.applyRateDiscountCampaigns(rateDiscountCampaigns)
-        # self.applyAmountDiscountCampaigns(amountDiscountsCampaigns)
-        
+        self.applyAmountDiscountCampaigns(amountDiscountsCampaigns)
 
-    def applyRateDiscountCampaigns(self, rateDiscounts) -> None:
+    def applyRateDiscountCampaigns(self, rateDiscounts: List[Campaign]) -> None:
         for campaign in rateDiscounts:
             applicableCategories, applicableProductCount = self.getCampaignApplicableCategories(campaign)
+            discount = campaign.discount if campaign.discount <= 100.0 else 100.0
 
             # if there is not enough products in all the categories affected by this campaign, continue
             if applicableProductCount <= campaign.minProductLimit:
@@ -105,14 +107,38 @@ class ShoppingCart:
             for applicableCategory in applicableCategories:
                 curCategoryDiscountAmount = 0
                 for curProduct in self.categories[applicableCategory.title]['products']:
-                    curProductDiscountAmount = self.categories[applicableCategory.title]['products'][curProduct]['currentPrice'] * (campaign.discount / 100.0)
+                    curProductDiscountAmount = self.categories[applicableCategory.title]['products'][curProduct]['currentPrice'] * (discount / 100.0)
                     curCategoryDiscountAmount += curProductDiscountAmount
                     self.categories[applicableCategory.title]['products'][curProduct]['currentPrice'] -= curProductDiscountAmount
 
                 self.categories[applicableCategory.title]['currentPrice'] -= curCategoryDiscountAmount
                 self.campaignDiscount += curCategoryDiscountAmount
+                self.currentTotalAmount -= curCategoryDiscountAmount
+
+    # Discount amount is discounted from every applicable category (children categories too) equally
+    # Discount amount in a category affects every product according to its price ratio in the category
+    def applyAmountDiscountCampaigns(self, amountDiscounts: List[Campaign]) -> None: 
+        for campaign in amountDiscounts:
+            applicableCategories, applicableProductCount = self.getCampaignApplicableCategories(campaign)
+
+            # if there is not enough products in all the categories affected by this campaign, continue
+            if applicableProductCount <= campaign.minProductLimit:
+                continue
+
+            for applicableCategory in applicableCategories:
+                totalPriceOfCategoryBeforeDiscount = self.categories[applicableCategory.title]['currentPrice']
+                discount = campaign.discount if campaign.discount <= totalPriceOfCategoryBeforeDiscount else totalPriceOfCategoryBeforeDiscount
+
+                for curProduct in self.categories[applicableCategory.title]['products']:
+                    curProductCurrentPrice = self.categories[applicableCategory.title]['products'][curProduct]['currentPrice']
+                    curProductDiscountAmount = discount * (curProductCurrentPrice / totalPriceOfCategoryBeforeDiscount) 
+                    self.categories[applicableCategory.title]['products'][curProduct]['currentPrice'] -= curProductDiscountAmount
+
+                self.categories[applicableCategory.title]['currentPrice'] -= discount
+                self.campaignDiscount += discount
+                self.currentTotalAmount -= discount
             
-    def getCampaignApplicableCategories(self, campaign: Campaign):
+    def getCampaignApplicableCategories(self, campaign: Campaign) -> Tuple[List[Category], int]:
         category = campaign.category
         applicableCategories = []
         applicableProductCount = 0
