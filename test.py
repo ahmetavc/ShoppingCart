@@ -1,5 +1,6 @@
 from Category import Category
 from Campaign import Campaign
+from Coupon import Coupon
 from ShoppingCart import ShoppingCart
 from Product import Product
 from DiscountType import DiscountType
@@ -23,6 +24,11 @@ class TestShoppingCart(unittest.TestCase):
         self.campaign2 = Campaign(self.home, 50.0, 3, DiscountType.Rate)
         self.campaign3 = Campaign(self.food, 12, 1, DiscountType.Amount)
         self.campaign4 = Campaign(self.home, 10, 3, DiscountType.Amount)
+
+        self.coupon1 = Coupon(100.0, 10.0, DiscountType.Rate)
+        self.coupon2 = Coupon(1000.0, 10.0, DiscountType.Rate)
+        self.coupon3 = Coupon(100.0, 100.0, DiscountType.Amount)
+        self.coupon4 = Coupon(1000.0, 100.0, DiscountType.Amount)
     
     def test_should_add_the_first_product_into_a_new_category(self):  
         newCategory = Category('new')
@@ -77,7 +83,6 @@ class TestShoppingCart(unittest.TestCase):
         curCategoryCurrentPrice = self.cart.categories['food']['currentPrice']
         curAppleProductCurrentPrice = self.cart.categories['food']['products']['apple']['currentPrice']
         curAlmondProductCurrentPrice = self.cart.categories['food']['products']['almond']['currentPrice']
-
 
         expectedCategoryDiscount = curCategoryCurrentPrice * (self.campaign1.discount / 100.0)
         expectedCategoryCurrentPrice = curCategoryCurrentPrice - expectedCategoryDiscount
@@ -187,7 +192,71 @@ class TestShoppingCart(unittest.TestCase):
         self.assertEqual(self.cart.categories['food']['products']['almond']['currentPrice'], expectedAlmondProductCurrentPriceAfterAmountDiscount)
         self.assertEqual(self.cart.campaignDiscount, expectedCategoryRateDiscount + self.campaign3.discount)
         self.assertEqual(self.cart.currentTotalAmount, totalPriceBeforeDiscounts - (expectedCategoryRateDiscount + self.campaign3.discount))
-        
+
+    def test_should_apply_rate_coupon_with_enough_amount_on_the_cart(self):
+        totalPriceBeforeDiscounts = self.cart.currentTotalAmount
+        curCategoryCurrentPrice = self.cart.categories['food']['currentPrice']
+        curAppleProductCurrentPrice = self.cart.categories['food']['products']['apple']['currentPrice']
+        curAlmondProductCurrentPrice = self.cart.categories['food']['products']['almond']['currentPrice']
+
+        expectedCategoryDiscount = curCategoryCurrentPrice * (self.coupon1.discount / 100.0)
+        expectedCategoryCurrentPrice = curCategoryCurrentPrice - expectedCategoryDiscount
+
+        expectedAppleProductDiscount = curAppleProductCurrentPrice * (self.coupon1.discount / 100.0)
+        expectedAppleProductCurrentPrice = curAppleProductCurrentPrice - expectedAppleProductDiscount
+
+        expectedAlmondProductDiscount = curAlmondProductCurrentPrice * (self.coupon1.discount / 100.0)
+        expectedAlmondProductCurrentPrice = curAlmondProductCurrentPrice - expectedAlmondProductDiscount
+
+        expectedTotalCouponDiscount = totalPriceBeforeDiscounts * (self.coupon1.discount / 100.0)
+        expectedTotalPrice = totalPriceBeforeDiscounts - expectedTotalCouponDiscount
+    
+        self.cart.applyCoupon(self.coupon1)
+
+        self.assertEqual(self.cart.categories['food']['currentPrice'], expectedCategoryCurrentPrice) 
+        self.assertEqual(self.cart.categories['food']['products']['apple']['currentPrice'], expectedAppleProductCurrentPrice)
+        self.assertEqual(self.cart.categories['food']['products']['almond']['currentPrice'], expectedAlmondProductCurrentPrice)
+        self.assertEqual(self.cart.couponDiscount, expectedTotalCouponDiscount)
+        self.assertEqual(self.cart.currentTotalAmount, expectedTotalPrice)
+
+    def test_should_not_apply_rate_coupon_without_enough_amount_on_the_cart(self): 
+        totalPriceBeforeDiscounts = self.cart.currentTotalAmount   
+
+        self.cart.applyCoupon(self.coupon2)
+
+        self.assertEqual(self.cart.couponDiscount, 0.0)
+        self.assertEqual(self.cart.currentTotalAmount, totalPriceBeforeDiscounts)
+
+    def test_should_apply_amount_coupon_with_enough_amount_on_the_cart(self):
+        totalPriceBeforeDiscounts = self.cart.currentTotalAmount
+        curCategoryCurrentPrice = self.cart.categories['food']['currentPrice']
+        curAppleProductCurrentPrice = self.cart.categories['food']['products']['apple']['currentPrice']
+        curAlmondProductCurrentPrice = self.cart.categories['food']['products']['almond']['currentPrice']
+
+        expectedCategoryDiscount = self.coupon3.discount * (curCategoryCurrentPrice / totalPriceBeforeDiscounts)
+        expectedCategoryCurrentPrice = curCategoryCurrentPrice - expectedCategoryDiscount
+
+        expectedAppleProductDiscount = self.coupon3.discount * (curAppleProductCurrentPrice / totalPriceBeforeDiscounts)
+        expectedAppleProductCurrentPrice = curAppleProductCurrentPrice - expectedAppleProductDiscount
+
+        expectedAlmondProductDiscount = self.coupon3.discount * (curAlmondProductCurrentPrice / totalPriceBeforeDiscounts)
+        expectedAlmondProductCurrentPrice = curAlmondProductCurrentPrice - expectedAlmondProductDiscount
+    
+        self.cart.applyCoupon(self.coupon3)
+
+        self.assertEqual(self.cart.categories['food']['currentPrice'], expectedCategoryCurrentPrice) 
+        self.assertEqual(self.cart.categories['food']['products']['apple']['currentPrice'], expectedAppleProductCurrentPrice)
+        self.assertEqual(self.cart.categories['food']['products']['almond']['currentPrice'], expectedAlmondProductCurrentPrice)
+        self.assertEqual(self.cart.couponDiscount, self.coupon3.discount)
+        self.assertEqual(self.cart.currentTotalAmount, totalPriceBeforeDiscounts - self.coupon3.discount)
+
+    def test_should_not_apply_amount_coupon_without_enough_amount_on_the_cart(self): 
+        totalPriceBeforeDiscounts = self.cart.currentTotalAmount   
+
+        self.cart.applyCoupon(self.coupon4)
+
+        self.assertEqual(self.cart.couponDiscount, 0.0)
+        self.assertEqual(self.cart.currentTotalAmount, totalPriceBeforeDiscounts)
 
 if __name__ == '__main__':
     unittest.main()

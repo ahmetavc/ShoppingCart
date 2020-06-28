@@ -107,13 +107,12 @@ class ShoppingCart:
             for applicableCategory in applicableCategories:
                 curCategoryDiscountAmount = 0
                 for curProduct in self.categories[applicableCategory.title]['products']:
-                    curProductDiscountAmount = self.categories[applicableCategory.title]['products'][curProduct]['currentPrice'] * (discount / 100.0)
-                    curCategoryDiscountAmount += curProductDiscountAmount
+                    curProductCurrentPrice = self.categories[applicableCategory.title]['products'][curProduct]['currentPrice']
+                    curProductDiscountAmount = curProductCurrentPrice * (discount / 100.0)
+                    self.categories[applicableCategory.title]['currentPrice'] -= curProductDiscountAmount
                     self.categories[applicableCategory.title]['products'][curProduct]['currentPrice'] -= curProductDiscountAmount
-
-                self.categories[applicableCategory.title]['currentPrice'] -= curCategoryDiscountAmount
-                self.campaignDiscount += curCategoryDiscountAmount
-                self.currentTotalAmount -= curCategoryDiscountAmount
+                    self.campaignDiscount += curProductDiscountAmount
+                    self.currentTotalAmount -= curProductDiscountAmount
 
     # Discount amount is discounted from every applicable category (children categories too) equally
     # Discount amount in a category affects every product according to its price ratio in the category
@@ -157,6 +156,33 @@ class ShoppingCart:
                 parentCategory = parentCategory.parent
 
         return applicableCategories, applicableProductCount
+
+    def applyCoupon(self, coupon: Coupon) -> bool:
+        if self.currentTotalAmount < coupon.minPurchaseLimit:
+            return False
+
+        if coupon.discountType == DiscountType.Amount:
+            discount = coupon.discount if coupon.discount <= self.currentTotalAmount else self.currentTotalAmount
+        else:                        
+            discount = coupon.discount if coupon.discount <= 100.0 else 100.0
+
+        totalAmountBeforeDiscount = self.currentTotalAmount
+
+        for category in self.categories:
+            for product in self.categories[category]['products']:
+                productCurrentPrice = self.categories[category]['products'][product]['currentPrice']
+
+                if coupon.discountType == DiscountType.Amount:
+                    productDiscount = discount * (productCurrentPrice / totalAmountBeforeDiscount)
+                else:
+                    productDiscount = productCurrentPrice * (discount / 100.0)
+                
+                self.categories[category]['currentPrice'] -= productDiscount
+                self.categories[category]['products'][product]['currentPrice'] -= productDiscount
+                self.currentTotalAmount -= productDiscount
+                self.couponDiscount += productDiscount
+
+        return True
         
     def getTotalAmountAfterDiscounts(self) -> float:
         pass
